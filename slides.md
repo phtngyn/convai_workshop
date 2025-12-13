@@ -1,0 +1,279 @@
+---
+theme: default
+title: Welcome to Slidev
+info: MoodleBot
+class: text-center
+transition: slide-left
+mdc: true
+---
+
+# MoodleBot
+
+An agent chatbot for the Conversation AI course
+
+---
+layout: two-cols
+---
+# What is MoodleBot?
+
+<div v-click class="h-full flex flex-col items-center [&>.mermaid]:w-full [&>.mermaid]:mt-20">
+```mermaid
+sequenceDiagram
+    participant User
+    participant MoodleBot
+
+    User-->>MoodleBot: When do we have to pitch?
+    MoodleBot-->>User: Tue, 11.11.2025 <br/>Source: Organization.pdf (Page 10)
+```
+
+<span>Our Vision</span>
+</div>
+
+::right::
+
+<div v-click class="[&>.mermaid]:flex [&>.mermaid]:justify-end">
+```mermaid
+graph TD
+    Start([User Input])
+    Thought(Thought)
+    Decision(More Context?)
+    Action(Action)
+    Observation(Observation)
+    Final(Answer)
+
+    Start --> Thought
+    Thought --> Decision
+
+    Decision -- ✅ Yes --> Action
+    Action --> Observation
+    Observation --> |"+ Context"| Thought
+
+    Decision -- ❌ No --> Final
+```
+</div>
+
+---
+
+# Agenda
+
+1. Get started with the web app
+2. Deep dive in the code
+3. Create new tool for the agents
+
+---
+layout: center
+class: text-center
+---
+
+# ReflAct
+
+Code Review
+
+---
+
+# ReflAct (`constructor`)
+
+```python [backend/ai/reflact.py] {all|1-5|7-10|12-21|all}
+class ReflActAgent:
+    def __init__(self, tools: Dict[str, Callable]):
+        self.tools = tools
+        tools_desc, tools_priority = build_tools(tools)
+        tools_desc.append("### `answer`: Provide final response to user.")
+
+        self.system_prompt = REFLACT_SYSTEM_PROMPT.format(
+            tools_description="\n\n".join(tools_desc),
+            tools_priority=tools_priority,
+        )
+
+# Usage
+agent = ReflActAgent(
+    tools={
+        "search": search,
+        "search_lectures": search_lectures,
+        "search_exercises": search_exercises,
+        "read_file": read_file,
+        "list_files": list_files,
+    },
+)
+```
+
+---
+
+# `search_lectures` tool
+
+```python [backend/ai/tools.py] {all|1|2-13|15|all}
+@register_tool(priority=1, use_case="lectures, theory, deadlines, schedules, concepts")
+async def search_lectures(query: str, max_results: int = 5) -> dict:
+    """Search lecture slides and PDF scripts only.
+
+    Use for: definitions, concepts, algorithms, theoretical questions.
+
+    Args:
+        query (str): Search query, e.g. "Chain-of-Thought prompting"
+        max_results (int): Number of results (default: 5)
+
+    Returns:
+        dict: {success, query, count, results}
+    """
+
+    return await search(query=query, document_type="script", max_results=max_results)
+```
+
+---
+
+# ReflAct (`ReflActResponse`)
+
+```python [backend/ai/tools.py] {all|1-3|6-9|12-14|all}
+class Reflection(BaseModel):
+    state: str = Field(description="Current information state")
+    goal: str = Field(description="User's ultimate objective")
+
+
+class Action(BaseModel):
+    tool: str = Field(description="The tool name to use")
+    args: Dict[str, Any] = Field(default_factory=dict, description="Tool arguments")
+    reason: str = Field(default="", description="Reasoning for the action")
+
+
+class ReflActResponse(BaseModel):
+    reflection: Reflection
+    action: Action
+```
+
+---
+
+# ReflAct (`stream`)
+
+```python [backend/ai/reflact.py] {all|2|3|4-10|11-12|14-15|16-17|18-19|21-22|4-22|14-15|all}
+class ReflActAgent:
+    async def stream(self, messages: Sequence[Message], model="gpt-4.1-nano", max_steps=10):
+        step = 0
+        while step < max_steps:
+            step += 1
+            content = await self.client.chat.completions.create(
+                model=model,
+                messages=messages,
+            )
+            response = ReflActResponse.model_validate_json(content)
+            tool_name = response.action.tool
+            tool_args = response.action.args
+
+            if tool_name == "answer":
+                return tool_args.get("text")
+            elif tool_name not in self.tools:
+                observation = "Invalid action..."
+            else:
+                observation = await self.tools[toolname](**tool_args)
+            
+            messages.append({"role": "assistant", "content": content})
+            messages.append({"role": "user", "content": f"Observation: {observation}"})
+```
+
+---
+
+# ReflAct (`/api/reflact`)
+
+```python [backend/server.py]
+@app.post("/api/reflact")
+async def reflact(request: Request):
+    agent = ReflActAgent(
+        tools={
+            "search": search,
+            "search_lectures": search_lectures,
+            "search_exercises": search_exercises,
+            "read_file": read_file,
+            "list_files": list_files,
+        },
+    )
+
+    messages = convert_to_openai_messages(request.messages)
+    stream = agent.stream(messages, request.model, request.max_steps)
+
+    return StreamingResponse(
+        stream,
+        media_type="text/event-stream",
+    )
+```
+
+---
+
+# `web_search` tool
+
+````md magic-move
+```python
+async def web_search(query: str, max_results: int = 5) -> dict:
+    return ToolResult.success(
+        {"query": query, "count": 0, "results": []}
+    )
+```
+
+```python {2-12}
+async def web_search(query: str, max_results: int = 5) -> dict:
+    import httpx
+
+    api_key = "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"
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            "https://api.tavily.com/search",
+            json={"api_key": api_key, "query": query, "max_results": max_results, "include_answer": False},
+            timeout=10.0,
+        )
+        response.raise_for_status()
+        data = response.json()
+
+    return ToolResult.success(
+        {"query": query, "count": 0, "results": []}
+    )
+```
+
+```python {14-21|all}
+async def web_search(query: str, max_results: int = 5) -> dict:
+    import httpx
+
+    api_key = "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"
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            "https://api.tavily.com/search",
+            json={"api_key": api_key, "query": query, "max_results": max_results, "include_answer": False},
+            timeout=10.0,
+        )
+        response.raise_for_status()
+        data = response.json()
+
+    results = [
+        {"title": r.get("title"),"url": r.get("url"),"content": r.get("content")[:500]}
+        for r in data.get("results")
+    ]
+
+    return ToolResult.success(
+        {"query": query, "count": len(results), "results": results}
+    )
+```
+
+```python {1,3-7|all}
+@register_tool(priority=6, use_case="web search for external info")
+async def web_search(query: str, max_results: int = 5) -> dict:
+    """Search the web for topics not in course, recent news, external documentation.
+    Args:
+        query (str): Search query, e.g. "GPT-4 vision capabilities"
+        max_results (int): Number of results (default: 5)
+    """
+    import httpx
+
+    api_key = "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"
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            "https://api.tavily.com/search",
+            json={"api_key": api_key, "query": query, "max_results": max_results, "include_answer": False},
+            timeout=10.0,
+        )
+        response.raise_for_status()
+        data = response.json()
+
+    results = [
+        {"title": r.get("title"),"url": r.get("url"),"content": r.get("content")[:500]}
+        for r in data.get("results")
+    ]
+    # rest...
+```
+````
