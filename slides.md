@@ -56,18 +56,47 @@ graph TD
 
 # Agenda
 
-1. Get started with the web app
-2. Deep dive in the code
-3. Create new tool for the agents
+1. Web App Overview
+   - Technology stack
+   - UI walkthrough
+   - Core features and capabilities
+
+2. Code Deep Dive
+   - Project architecture
+   - Key components and data flow
+
+3. Extending Agent Capabilities
+   - Overview of the agent toolbox
+   - Implementing a custom `web_search` tool 
+   - Demo and integration
 
 ---
 layout: center
-class: text-center
+class: text-left
 ---
 
-# ReflAct
+# Web App Overview
 
-Code Review
+- Technology stack
+- UI walkthrough
+- Core features and capabilities
+
+<br>
+
+```bash
+Backend:  http://localhost:8000
+Frontend: http://localhost:3000
+```
+
+---
+layout: center
+class: text-left
+---
+
+# Code Deep Dive
+
+   - Project architecture
+   - Key components and data flow
 
 ---
 
@@ -196,6 +225,16 @@ async def reflact(request: Request):
 ```
 
 ---
+layout: center
+class: text-left
+---
+
+# Extending Agent Capabilities
+
+- Overview of the agent toolbox
+- Implementing a custom `web_search` tool 
+- Demo and integration
+---
 
 # `web_search` tool
 
@@ -277,3 +316,11 @@ async def web_search(query: str, max_results: int = 5) -> dict:
     # rest...
 ```
 ````
+
+---
+
+# Hypotheses
+
+Based on the workshop so far, decide whether each hypothesis is supported or not supported.
+
+<Hypotheses />
