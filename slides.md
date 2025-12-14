@@ -89,14 +89,39 @@ Frontend: http://localhost:3000
 ```
 
 ---
+
+
+# Max Steps Limitation
+
+<v-clicks every="2">
+
+- <lucide-check class="text-green"/> Pros
+  - Prevents Infinite Loops
+  - Predictable Cost
+  - Low Latency
+
+<br>
+
+- <lucide-x class="text-red"/> Cons
+  - Wasted Work
+  - Limits Intelligence
+
+<br>
+
+- <lucide-construction class="text-yellow mr-1"/>  Solutions
+  - Soft Limit
+  - Deduplication
+
+</v-clicks>
+---
 layout: center
 class: text-left
 ---
 
 # Code Deep Dive
 
-   - Project architecture
-   - Key components and data flow
+- Project architecture
+- Key components and data flow
 
 ---
 
@@ -241,47 +266,44 @@ class: text-left
 ````md magic-move
 ```python
 async def web_search(query: str, max_results: int = 5) -> dict:
-    return ToolResult.success(
-        {"query": query, "count": 0, "results": []}
-    )
+    # from tavily import TavilyClient
+
+    # client = TavilyClient(api_key="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")
+
+    return ToolResult.success({"query": query, "count": 0, "results": []})
 ```
 
-```python {2-12}
+```python {5-12|all}
 async def web_search(query: str, max_results: int = 5) -> dict:
-    import httpx
+    from tavily import TavilyClient
 
-    api_key = "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"
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            "https://api.tavily.com/search",
-            json={"api_key": api_key, "query": query, "max_results": max_results, "include_answer": False},
-            timeout=10.0,
-        )
-        response.raise_for_status()
-        data = response.json()
+    client = TavilyClient(api_key="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")
+    response = client.search(query=query, max_results=max_results)
+    results = [
+        {
+            "title": r.get("title", ""),
+            "url": r.get("url", ""),
+            "content": r.get("content", ""),
+        }
+        for r in response.get("results", [])
+    ]
 
-    return ToolResult.success(
-        {"query": query, "count": 0, "results": []}
-    )
+    return ToolResult.success({"query": query, "count": 0, "results": []})
 ```
 
 ```python {14-21|all}
 async def web_search(query: str, max_results: int = 5) -> dict:
-    import httpx
+    from tavily import TavilyClient
 
-    api_key = "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"
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            "https://api.tavily.com/search",
-            json={"api_key": api_key, "query": query, "max_results": max_results, "include_answer": False},
-            timeout=10.0,
-        )
-        response.raise_for_status()
-        data = response.json()
-
+    client = TavilyClient(api_key="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")
+    response = client.search(query=query, max_results=max_results)
     results = [
-        {"title": r.get("title"),"url": r.get("url"),"content": r.get("content")[:500]}
-        for r in data.get("results")
+        {
+            "title": r.get("title", ""),
+            "url": r.get("url", ""),
+            "content": r.get("content", ""),
+        }
+        for r in response.get("results", [])
     ]
 
     return ToolResult.success(
@@ -297,25 +319,31 @@ async def web_search(query: str, max_results: int = 5) -> dict:
         query (str): Search query, e.g. "GPT-4 vision capabilities"
         max_results (int): Number of results (default: 5)
     """
-    import httpx
+    from tavily import TavilyClient
 
-    api_key = "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"
-    async with httpx.AsyncClient() as client:
-        response = await client.post(
-            "https://api.tavily.com/search",
-            json={"api_key": api_key, "query": query, "max_results": max_results, "include_answer": False},
-            timeout=10.0,
-        )
-        response.raise_for_status()
-        data = response.json()
-
+    client = TavilyClient(api_key="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")
+    response = client.search(query=query, max_results=max_results)
     results = [
-        {"title": r.get("title"),"url": r.get("url"),"content": r.get("content")[:500]}
-        for r in data.get("results")
+        {
+            "title": r.get("title", ""),
+            "url": r.get("url", ""),
+            "content": r.get("content", ""),
+        }
+        for r in response.get("results", [])
     ]
+
+    return ToolResult.success(
+        {"query": query, "count": len(results), "results": results}
+    )
     # rest...
 ```
 ````
+
+---
+layout: center
+---
+
+# Demo `web_search` tool
 
 ---
 
@@ -323,4 +351,4 @@ async def web_search(query: str, max_results: int = 5) -> dict:
 
 Based on the workshop so far, decide whether each hypothesis is supported or not supported.
 
-<Hypotheses />
+<Hypotheses v-click />
