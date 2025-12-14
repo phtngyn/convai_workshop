@@ -1,7 +1,8 @@
 ---
 theme: default
-title: Welcome to Slidev
-info: MoodleBot
+title: MoodleBot
+titleTemplate: '%s'
+info: An agent chatbot for the Conversation AI course
 class: text-center
 transition: slide-left
 mdc: true
