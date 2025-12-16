@@ -91,7 +91,6 @@ Frontend: http://localhost:3000
 
 ---
 
-
 # Max Steps Limitation
 
 <v-clicks every="2">
@@ -114,6 +113,7 @@ Frontend: http://localhost:3000
   - Deduplication
 
 </v-clicks>
+
 ---
 layout: center
 class: text-left
@@ -156,12 +156,10 @@ agent = ReflActAgent(
 
 # `search_lectures` tool
 
-```python [backend/ai/tools.py] {all|1|2-13|15|all}
+```python [backend/ai/tools.py] {all|1|2|3-11|13|all}
 @register_tool(priority=1, use_case="lectures, theory, deadlines, schedules, concepts")
 async def search_lectures(query: str, max_results: int = 5) -> dict:
     """Search lecture slides and PDF scripts only.
-
-    Use for: definitions, concepts, algorithms, theoretical questions.
 
     Args:
         query (str): Search query, e.g. "Chain-of-Thought prompting"
@@ -178,7 +176,12 @@ async def search_lectures(query: str, max_results: int = 5) -> dict:
 
 # ReflAct (`ReflActResponse`)
 
-```python [backend/ai/tools.py] {all|1-3|6-9|12-14|all}
+```python [backend/ai/reflact.py] {all|1-3|6-8|11-15|all}
+class ReflActResponse(BaseModel):
+    reflection: Reflection
+    action: Action
+
+
 class Reflection(BaseModel):
     state: str = Field(description="Current information state")
     goal: str = Field(description="User's ultimate objective")
@@ -187,12 +190,7 @@ class Reflection(BaseModel):
 class Action(BaseModel):
     tool: str = Field(description="The tool name to use")
     args: Dict[str, Any] = Field(default_factory=dict, description="Tool arguments")
-    reason: str = Field(default="", description="Reasoning for the action")
-
-
-class ReflActResponse(BaseModel):
-    reflection: Reflection
-    action: Action
+    reason: str = Field(description="Reasoning for the action")
 ```
 
 ---
@@ -218,7 +216,7 @@ class ReflActAgent:
             elif tool_name not in self.tools:
                 observation = "Invalid action..."
             else:
-                observation = await self.tools[toolname](**tool_args)
+                observation = await self.tools[tool_name](**tool_args)
             
             messages.append({"role": "assistant", "content": content})
             messages.append({"role": "user", "content": f"Observation: {observation}"})
@@ -336,7 +334,6 @@ async def web_search(query: str, max_results: int = 5) -> dict:
     return ToolResult.success(
         {"query": query, "count": len(results), "results": results}
     )
-    # rest...
 ```
 ````
 

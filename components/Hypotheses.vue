@@ -2,8 +2,8 @@
 import { ref } from 'vue'
 
 const texts = [
-  "ReAct improves accuracy and citation coverage.",
-  "ReAct helps on complex questions, not simple lookups.",
+  "ReAct / ReflAct improves accuracy and citation coverage.",
+  "ReAct / ReflAct helps on complex questions, not simple lookups.",
   "Visible reasoning increases trust and satisfaction."
 ]
 
@@ -30,9 +30,7 @@ function select(text: string) {
 
         <div v-if="selected.includes(text)"
           class="absolute top-4 right-4 size-6 rounded-full bg-white flex items-center justify-center">
-          <svg class="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-          </svg>
+          <lucide-check class="size-4 text-black" />
         </div>
       </button>
     </div>
