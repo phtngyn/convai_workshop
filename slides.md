@@ -350,3 +350,17 @@ layout: center
 Based on the workshop so far, decide whether each hypothesis is supported or not supported.
 
 <Hypotheses v-click />
+
+---
+
+
+| Agent | Task Type | Avg Steps | Avg Duration (s) | Faithfulness | Citation Coverage |
+|-------|-----------|-----------|------------------|--------------|-------------------|
+| **Standard** | Look Up | 1.00 | 3.32 | 0.2714 | 0.7200 |
+| **Standard** | Multi-hop | 1.00 | 4.50 | 0.3035 | 0.6200 |
+| **ACT** | Look Up | 8.68 | 8.17 | 0.8197 | 0.7200 |
+| **ACT** | Multi-hop | 10.36 | 9.24 | 0.7438 | 0.2600 |
+| **ReAct** | Look Up | 5.00 | 7.89 | 0.7960 | 0.8000 |
+| **ReAct** | Multi-hop | 4.80 | 9.07 | 0.5253 | 0.4400 |
+| **ReflAct** | Look Up | 5.32 | 7.32 | 0.7024 | 0.7200 |
+| **ReflAct** | Multi-hop | 5.08 | 6.78 | 0.4207 | 0.6200 |
